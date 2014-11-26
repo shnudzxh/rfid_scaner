@@ -3,7 +3,7 @@
 import telnetlib
 
 class reader_con:
-    def __init__(self,host ='192.168.1.105',port = 23,username ='alien',passwd ='password',mode = "telnet",debuglevel = 0):
+    def __init__(self,host ='192.168.1.108',port = 23,username ='alien',passwd ='password',mode = "telnet",debuglevel = 0):
         self.host = host
         self.port = port
         self.username = username
@@ -11,45 +11,45 @@ class reader_con:
         self.mode = mode
         self.debug_level= debuglevel
 
-        if debuglevel:
+        if self.debug_level:
             print "reader_con details:"
             print self.host,"\t",self.port,"\t",self.username,"\t",self.passwd,"\t",self.mode,"\t",self.debug_level
-        self.ssh_error()
+        
+        if self.mode == "ssh":
+            self.ssh_error()
 
     def ssh_error(self):
-        print "ssh is not ready now"
+        print "ssh for reader control is not ready now"
 
-    #Ê¹ÓÃtelnet¿ª¹Ø¶Á¿¨Æ÷µÄ×Ô¶¯É¨ÃèÄ£Ê½
+    #ä½¿ç”¨telnetå¼€å…³è¯»å¡å™¨çš„è‡ªåŠ¨æ‰«ææ¨¡å¼
     def scan_con(self,start_con):
         if self.mode == "telnet":
             self.con = telnetlib.Telnet(self.host, self.port, timeout=1)
             self.con.set_debuglevel(self.debug_level)
             
-            # ÊäÈëµÇÂ¼ÓÃ»§Ãû  
-            tn.read_until('Username>')  
-            tn.write(username + '\n') 
+            # è¾“å…¥ç™»å½•ç”¨æˆ·å  
+            self.con.read_until('Username>')  
+            self.con.write(self.username + '\n') 
             
-            # ÊäÈëµÇÂ¼ÃÜÂë  
-            tn.read_until('Password>')  
-            tn.write(passwd + '\n')
+            # è¾“å…¥ç™»å½•å¯†ç   
+            self.con.read_until('Password>')  
+            self.con.write(self.passwd + '\n')
 
-            tn.read_until('Alien>')
+            self.con.read_until('Alien>')
             
             if start_con:
                 #start collection
-                tn.write('automode=on')
-                tn.write('\n') 
+                self.con.write('automode=on')
+                self.con.write('\n') 
                 print "Scanning mode started"
             else: 
                 #stop collection
-                tn.write('automode=off')
-                tn.write('\n') 
+                self.con.write('automode=off')
+                self.con.write('\n') 
                 print "Scanning mode stoped"
                 
-            #Ö´ÐÐÍê±Ïºó£¬ÖÕÖ¹TelnetÁ¬½Ó£¨»òÊäÈëexitÍË³ö£©  
-            tn.read_until('Alien>')
-            tn.close() #tn.write('exit\n')
+            #æ‰§è¡Œå®Œæ¯•åŽï¼Œç»ˆæ­¢Telnetè¿žæŽ¥ï¼ˆæˆ–è¾“å…¥exité€€å‡ºï¼‰  
+            self.con.read_until('Alien>')
+            self.con.close() #self.con.write('exit\n')
         elif self.mode == "ssh":
             self.ssh_error() 
-        
-        

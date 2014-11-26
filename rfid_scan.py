@@ -4,24 +4,26 @@ from threading import *
 
 from rfid_xml import *          #XML解析部分,返回UID的hash
 from rfid_readercon import *    #与读卡器连接,控制扫描模式的开关
-
-print "start\r\n~~~~~~~~~~~~~"
+from rfid_devicemanager import *
 
 #for socket
-host = ''
-port = 4000
+address = ('', 4000) 
 
 #tcp socket处理进程
 def handlechild(clientsock):
     #print "New child", currentThread().getName()
     #print "Got connection from", clientsock.getpeername()
     while 1:
-        data = clientsock.recv(4096)
+        data = clientsock.recv(8192)
         if not len(data):
             break
-        #print "received:\r\n",data        
+        if len(data) == 8192:
+            print "Socket buffer full"
+            break
+        #print "received:",data        
         #clientsock.sendall(data)
-        xmlparser.get_tagid(data)
+        uuid = xmlparser.get_tagid(data)
+        dev.adddev(uuid)
     
     # Close the connection
     clientsock.close()
@@ -35,12 +37,13 @@ xmlparser = rfid_xml()
 #===================================
 rd_con = reader_con()
 rd_con.scan_con(True)
-print "Done with telnet"
+#===================================
+dev = rfid_devicemanager()
 #===================================
 # 创建tcpsocket
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)#创建socket
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)#创建socket
-s.bind((host, port))#绑定端口
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)#创建socket
+s.bind(address)
 s.listen(5)#开始监听
 print "Start listen"
 #===================================
@@ -48,11 +51,13 @@ print "Start listen"
 #循环等待连接
 while 1:
     try:
+        #print "waitting accept"
         clientsock, clientaddr = s.accept()#接受外部连接
-    except KeyboardInterrupt:
-        raise
+        #print "connection from:\t",clientsock,clientaddr
+    except KeyboardInterrupt :
+        break
+        print "KeyBoard INT detected"
     except:
-        #
         traceback.print_exc()
         continue
 
@@ -60,5 +65,7 @@ while 1:
     t.setDaemon(1)#设置后台
     t.start()#start新进程
 
+print "end of accecpt while"
 #关闭scan模式
 rd_con.scan_con(False)
+dev.op2files()

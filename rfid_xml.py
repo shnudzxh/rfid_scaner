@@ -24,19 +24,24 @@ class rfid_xml:
 
     def get_tagid(self,rfid_text):
         if self.debug:
-            print "~\r\n",rfid_text,"~\r\n"
-        
-        #���˷Ƿ��ַ�
+            print "~"*20,"\r\n",rfid_text,"\r\n","~"*20
+
         rfid_text=re.sub(u"[\x00-\x08\x0b-\x0c\x0e-\x1f]+",u"",rfid_text)
 
-        #��ElementTree����
-        root = ET.fromstring(rfid_text)
-        #����TagID
+        try:
+            root = ET.fromstring(rfid_text)
+        except SyntaxError:
+            print "ParseError(SyntaxError) happened"
+            #当接收数据不完整(实际数据包大小大于缓冲区)时,可以换用正则去解析
+            #parse_byRE(rfid_text)
+            return None
+
         for child in root.iter('TagID'):
             rfid_id = child.text.replace(" ","")
             rfid_id_hash = hashlib.md5(rfid_id).hexdigest()
             if self.debug:
                 print rfid_id,"\tmd5:\r\n",hashlib.md5(rfid_id).hexdigest(),"\r\n"
+        return rfid_id_hash
 
     def test_fun(self):
         print "Need Debug =",self.debug
