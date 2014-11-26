@@ -18,8 +18,10 @@ class rfid_devicemanager:
             self.showall()
 
     def showall(self):
+        print "*"*20
         for i in self.devlist:
             print i
+        print "*"*20
 
     def op2files(self):
         fname = time.strftime("ScanList-%Y-%m-%d-%A-%H-%M.txt")

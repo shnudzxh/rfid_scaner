@@ -20,11 +20,13 @@ def handlechild(clientsock):
         if len(data) == 8192:
             print "Socket buffer full"
             break
-        #print "received:",data        
-        #clientsock.sendall(data)
-        uuid = xmlparser.get_tagid(data)
-        dev.adddev(uuid)
-    
+#        print "*"*20,"received:",data
+#        print "*"*20
+#        clientsock.sendall(data)
+        hashid_list = xmlparser.get_tagid(data)
+        for i in hashid_list:
+            dev.adddev(i)
+
     # Close the connection
     clientsock.close()
     print "connection closed:\r\n"
