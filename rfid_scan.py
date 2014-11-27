@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import socket, traceback, os, sys,time
 from threading import *
-
+from gpio import *
 from rfid_xml import *          #XML解析部分,返回UID的hash
 from rfid_readercon import *    #与读卡器连接,控制扫描模式的开关
 from rfid_devicemanager import *
@@ -31,7 +31,10 @@ def handlechild(clientsock):
     clientsock.close()
     print "connection closed:\r\n"
 
-
+#===================================
+g = rey_pyio()
+g.init_all()
+g.mode(21,g.IOIN)
 #===================================
 xmlparser = rfid_xml()
 #测试XML解析TagID
@@ -45,6 +48,7 @@ dev = rfid_devicemanager()
 # 创建tcpsocket
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)#创建socket
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)#创建socket
+s.setblocking(0)
 s.bind(address)
 s.listen(5)#开始监听
 print "Start listen"
@@ -52,6 +56,8 @@ print "Start listen"
 
 #循环等待连接
 while 1:
+    if g.read(21) == '0':
+        break
     try:
         #print "waitting accept"
         clientsock, clientaddr = s.accept()#接受外部连接
@@ -59,9 +65,13 @@ while 1:
     except KeyboardInterrupt :
         break
         print "KeyBoard INT detected"
-    except:
-        traceback.print_exc()
-        continue
+    except socket.error, e:
+        if e.args[0] == 10035 or e.args[0] == 11:
+            continue
+        else:
+            print "Unexpected error happened:",e
+            traceback.print_exc()
+        break
 
     t = Thread(target = handlechild, args = [clientsock])#创建进程
     t.setDaemon(1)#设置后台
