@@ -24,8 +24,9 @@ def handlechild(clientsock):
 #        print "*"*20
 #        clientsock.sendall(data)
         hashid_list = xmlparser.get_tagid(data)
-        for i in hashid_list:
-            dev.adddev(i)
+        if hashid_list != None:
+            for i in hashid_list:
+                dev.adddev(i)
 
     # Close the connection
     clientsock.close()
