@@ -61,17 +61,14 @@ class rfid_xml:
         rfid_text=re.sub(u"[\x00-\x08\x0b-\x0c\x0e-\x1f]+",u"",rfid_text)
         
         idlist=list()
-
-        try:
-            root = ET.fromstring(rfid_text)
-        except SyntaxError:
-            print "ParseError(SyntaxError) happened"
-            #当接收数据不完整(实际数据包大小大于缓冲区)时,可以换用正则去解析
-            #parse_byRE(rfid_text)
-            return None
-
-        for child in root.iter('TagID'):
-            rfid_id = child.text.replace(" ","")
+        
+        p1=re.compile(r'(?<=<TagID>)(.*?)(?=</TagID>)')
+        tagidlist = p1.findall(rfid_text)
+        #print "TagListID is:",tagidlist
+        
+        for child in tagidlist:
+            #print "child is:",child
+            rfid_id = child.replace(" ","")
             rfid_id_hash = hashlib.md5(rfid_id).hexdigest()
             idlist.append(rfid_id_hash)
             if self.debug:

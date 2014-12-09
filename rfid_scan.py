@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import socket, traceback, os, sys,time
+import socket, traceback, os, sys,time,platform
 from threading import *
 from gpio import *
 from rfid_xml import *          #XML解析部分,返回UID的hash
@@ -14,28 +14,36 @@ def handlechild(clientsock):
     #print "New child", currentThread().getName()
     #print "Got connection from", clientsock.getpeername()
     while 1:
-        data = clientsock.recv(8192)
-        if not len(data):
-            break
-        if len(data) == 8192:
-            print "Socket buffer full"
-            break
-#        print "*"*20,"received:",data
-#        print "*"*20
-#        clientsock.sendall(data)
-        hashid_list = xmlparser.get_tagid(data)
-        if hashid_list != None:
-            for i in hashid_list:
-                dev.adddev(i)
+        try:
+            data = clientsock.recv(8192)
+            if not len(data):
+                break
+            if len(data) == 8192:
+                print "Socket buffer full"
+            # print "*"*20,"received:"
+            # print data
+            # print "*"*20
+            hashid_list = xmlparser.get_tagid(data)
+            if hashid_list != None:
+                for i in hashid_list:
+                    dev.logDB(i)
+        except socket.error, e:
+            if ((e.args[0] == 10035) or (e.args[0] == 11)):
+                continue
+            else:
+                print "Unexpected error happened:",e
+                traceback.print_exc()
 
     # Close the connection
     clientsock.close()
     print "connection closed:\r\n"
 
+
 #===================================
-g = rey_pyio()
-g.init_all()
-g.mode(21,g.IOIN)
+if (platform.system() != 'Windows'):
+    g = rey_pyio()
+    g.init_all()
+    g.mode(21,g.IOIN)
 #===================================
 xmlparser = rfid_xml()
 #测试XML解析TagID
@@ -57,25 +65,27 @@ print "Start listen"
 
 #循环等待连接
 while 1:
-    if g.read(21) == '0':
-        break
+    if (platform.system() != 'Windows'):
+        if g.read(21) == '0':
+            break
+
     try:
         #print "waitting accept"
         clientsock, clientaddr = s.accept()#接受外部连接
         #print "connection from:\t",clientsock,clientaddr
-    except KeyboardInterrupt :
-        break
+    except KeyboardInterrupt:
         print "KeyBoard INT detected"
+        break
     except socket.error, e:
-        if e.args[0] == 10035 or e.args[0] == 11:
+        if ((e.args[0] == 10035) or (e.args[0] == 11)):
             continue
         else:
             print "Unexpected error happened:",e
             traceback.print_exc()
         break
-
+    print "I'll start a Thread"
     t = Thread(target = handlechild, args = [clientsock])#创建进程
-    t.setDaemon(1)#设置后台
+    t.setDaemon(0)#设置后台
     t.start()#start新进程
 
 print "end of accecpt while"
