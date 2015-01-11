@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import time,sqlite3
+import time,sqlite3,threading
 
 class rfid_devicemanager:
     def __init__(self,debuglevel=False):
         self.devlist = list()
         self.debuglevel = debuglevel
+        self.pairdic = dict()
         try:
             self.conn = sqlite3.connect('rfid.db',check_same_thread = False)
         except :
@@ -18,31 +19,65 @@ class rfid_devicemanager:
             
         try:
             self.c.execute('''CREATE TABLE history\
-                 (hashid text, time_readable text,time real)''')
+                 (hashid text,time real)''')
         except :
-            print "Error create Table"
-            
+            print "Error create Table history"
 
-    def adddev(self,hashid):
-        print "I'll add\t",hashid
-        # if hashid in self.devlist:
-            # #self.showall()
-            # pass
-            # if self.debuglevel :
-                # print "Already in list"
-        # else:
-            # self.devlist.append(hashid)
-            # self.showall()
-            
+        try:
+            self.c.execute('''CREATE TABLE pair\
+                 (carID text, peopleID text)''')
+        except :
+            print "Error create Table pair"
+
     def logDB(self,hashid):
-        str_exec = '''INSERT INTO history VALUES("%s","%s",%f)'''\
-                    %((hashid),time.asctime(),time.time())
-        print str_exec
+        #Insert tagID to table as log data
+        tm = time.time()
+        str_exec = '''INSERT INTO history VALUES("%s",%f)'''\
+                    %((hashid),tm)
+        #print str_exec
         try:
             self.c.execute(str_exec)
             self.conn.commit()
         except Exception, e:
             print "Error when Insert into SQL:",e
+
+        if self.pairdic.has_key(hashid):
+            #hashid is a car ID,I'll search people ID in history
+            peoID = self.pairdic.get(hashid)
+            t = threading.Timer(5.0,self.checkinhistory,[peoID,tm])
+            t.start()
+        #else:
+            #print hashid,"Not a car in pair I'll ignore"
+
+    def load_db2dic(self,table_name):
+        str_exec = '''select * from %s'''\
+                %(table_name)
+
+        try:
+            self.c.execute(str_exec)
+        except Exception, e:
+            print "Error when check pair:",e
+
+        for row in self.c:
+            carid,peoid = row
+            self.pairdic[carid]=peoid
+
+        #print self.pairdic
+
+    def checkinhistory(self,hashid,tm):
+        str_exec = '''SELECT * FROM history WHERE hashid="%s" AND time<%s AND time>%s'''\
+                %(hashid,tm+5,tm-5)
+        #print str_exec
+
+        try:
+            self.c.execute(str_exec)
+        except Exception, e:
+            print "Error when check carid in history:",e
+
+        #print "after check i get:",self.c.fetchall()
+        if not self.c.fetchall():
+            print "*********",hashid,"******warnning*******"
+        
 
     def showall(self):
         pass

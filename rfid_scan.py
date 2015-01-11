@@ -25,8 +25,8 @@ def handlechild(clientsock):
             # print "*"*20
             hashid_list = xmlparser.get_tagid(data)
             if hashid_list != None:
-                for i in hashid_list:
-                    dev.logDB(i)
+                for hashID in hashid_list:
+                    dev.logDB(hashID)
         except socket.error, e:
             if ((e.args[0] == 10035) or (e.args[0] == 11)):
                 continue
