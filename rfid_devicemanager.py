@@ -8,7 +8,7 @@ class rfid_devicemanager:
         self.debuglevel = debuglevel
         self.pairdic = dict()
         try:
-            self.conn = sqlite3.connect('rfid.db',check_same_thread = False)
+            self.conn = sqlite3.connect('rfid_db.db',check_same_thread = False)
         except :
             print "Unexpected error happened devmgr_init"
             
@@ -57,10 +57,13 @@ class rfid_devicemanager:
             self.c.execute(str_exec)
         except Exception, e:
             print "Error when check pair:",e
-
+        
+        i=0
         for row in self.c:
+            i=i+1
             carid,peoid = row
             self.pairdic[carid]=peoid
+        print "load %d Pair(s)"%(i)
 
         #print self.pairdic
 

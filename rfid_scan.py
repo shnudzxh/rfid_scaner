@@ -27,6 +27,7 @@ def handlechild(clientsock):
             if hashid_list != None:
                 for hashID in hashid_list:
                     dev.logDB(hashID)
+                    #print "I get a tag:",hashID
         except socket.error, e:
             if ((e.args[0] == 10035) or (e.args[0] == 11)):
                 continue
@@ -53,6 +54,7 @@ rd_con = reader_con()
 rd_con.scan_con(True)
 #===================================
 dev = rfid_devicemanager()
+dev.load_db2dic("pair")
 #===================================
 # 创建tcpsocket
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)#创建socket
@@ -83,7 +85,7 @@ while 1:
             print "Unexpected error happened:",e
             traceback.print_exc()
         break
-    print "I'll start a Thread"
+
     t = Thread(target = handlechild, args = [clientsock])#创建进程
     t.setDaemon(0)#设置后台
     t.start()#start新进程
@@ -91,4 +93,4 @@ while 1:
 print "end of accecpt while"
 #关闭scan模式
 rd_con.scan_con(False)
-dev.op2files()
+#dev.op2files()
