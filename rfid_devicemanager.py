@@ -7,6 +7,7 @@ class rfid_devicemanager:
         self.devlist = list()
         self.debuglevel = debuglevel
         self.pairdic = dict()
+        self.dblock = threading.Lock()
         try:
             self.conn = sqlite3.connect('rfid_db.db',check_same_thread = False)
         except :
@@ -31,6 +32,9 @@ class rfid_devicemanager:
 
     def logDB(self,hashid):
         #Insert tagID to table as log data
+
+        #get lock first
+        self.dblock.acquire()
         tm = time.time()
         str_exec = '''INSERT INTO history VALUES("%s",%f)'''\
                     %((hashid),tm)
@@ -41,6 +45,8 @@ class rfid_devicemanager:
         except Exception, e:
             print "Error when Insert into SQL:",e
 
+        self.dblock.release()
+
         if self.pairdic.has_key(hashid):
             #hashid is a car ID,I'll search people ID in history
             peoID = self.pairdic.get(hashid)
@@ -49,7 +55,29 @@ class rfid_devicemanager:
         #else:
             #print hashid,"Not a car in pair I'll ignore"
 
+    def isindb(self,table,column,value):
+        #check value 
+        self.dblock.acquire()
+
+        str_exec = '''select COUNT(*) from %s where %s="%s"'''\
+                %(table,column,value)
+
+        print str_exec
+        try:
+            self.c.execute(str_exec)
+        except Exception, e:
+            print "Error when check pair:",e
+
+        self.dblock.release()
+        lt = self.c.fetchall()
+        if lt[0][0]:
+            return True
+        else:
+            return False
+        
     def load_db2dic(self,table_name):
+        self.dblock.acquire()
+
         str_exec = '''select * from %s'''\
                 %(table_name)
 
@@ -57,6 +85,8 @@ class rfid_devicemanager:
             self.c.execute(str_exec)
         except Exception, e:
             print "Error when check pair:",e
+
+        self.dblock.release()
         
         i=0
         for row in self.c:
@@ -72,10 +102,14 @@ class rfid_devicemanager:
                 %(hashid,tm+5,tm-5)
         #print str_exec
 
+        self.dblock.acquire()
+
         try:
             self.c.execute(str_exec)
         except Exception, e:
             print "Error when check carid in history:",e
+
+        self.dblock.release()
 
         #print "after check i get:",self.c.fetchall()
         if not self.c.fetchall():
