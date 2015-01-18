@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-import socket, traceback, os, sys,time,platform
-from threading import *
+import socket, traceback, os, sys,time,platform,threading,optparse
 from gpio import *
 from rfid_xml import *          #XML解析部分,返回UID的hash
 from rfid_readercon import *    #与读卡器连接,控制扫描模式的开关
 from rfid_devicemanager import *
 
-#for socket
-address = ('', 4000) 
+
+ 
 
 #tcp socket处理进程
 def handlechild(clientsock):
@@ -39,12 +38,87 @@ def handlechild(clientsock):
     clientsock.close()
     print "connection closed:\r\n"
 
+#===================================
+parser = optparse.OptionParser(
+        usage = "%prog [options] port",
+        description = "RFID Scanner",
+        epilog = """\
+Note it's me
+""")
 
+parser.add_option("-p", "--localport",
+#        dest = "local_port",
+        action = "store",
+        type = 'int',
+        help = "Local TCP port for comming tcp data",
+        default = 4000
+    )
+
+parser.add_option("-i", "--gpio_in",
+        dest = "gpio_in",
+        action = "store",
+        type = 'int',
+        help = "GPIO Number for RaspberryPi Key(GPIO IN)",
+        default = 21
+    )
+
+parser.add_option("-o", "--gpio_out",
+        dest = "gpio_out",
+        action = "store",
+        type = 'int',
+        help = "GPIO Number for RaspberryPi notice(like beep and LEDs GPIO IN)",
+        default = 25
+    )
+
+parser.add_option("--reader_address",
+        dest = "reader_address",
+        action = "store",
+        type = 'string',
+        help = "Address for reader",
+        default = "192.168.1.108"
+    )
+
+parser.add_option("--reader_port",
+        dest = "reader_port",
+        action = "store",
+        type = 'int',
+        help = "Port for reader",
+        default = 23
+    )
+
+parser.add_option("--reader_username",
+        dest = "reader_username",
+        action = "store",
+        type = 'string',
+        help = "Username for reader",
+        default = "alien"
+    )
+
+parser.add_option("--reader_password",
+        dest = "reader_password",
+        action = "store",
+        type = 'string',
+        help = "PassWord for reader",
+        default = "password"
+    )
+
+parser.add_option("--reader_method",
+        dest = "reader_method",
+        action = "store",
+        type = 'string',
+        help = "Control method for reader",
+        default = "telnet"
+    )
+
+#===================================
+(options, args) = parser.parse_args()
+#for local socket
+address = ('', options.local_port)
 #===================================
 if (platform.system() != 'Windows'):
     g = rey_pyio()
     g.init_all()
-    g.mode(21,g.IOIN)
+    g.mode(gpio_in,g.IOIN)
 #===================================
 xmlparser = rfid_xml()
 #测试XML解析TagID
@@ -53,12 +127,12 @@ xmlparser = rfid_xml()
 rd_con = reader_con()
 rd_con.scan_con(True)
 #===================================
-dev = rfid_devicemanager()
+dev = rfid_devicemanager(options.reader_address,options.reader_port,options.username,options.password,options.reader_method)
 dev.load_db2dic("pair")
 #===================================
 # 创建tcpsocket
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)#创建socket
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)#创建socket
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
 s.setblocking(0)
 s.bind(address)
 s.listen(5)#开始监听
@@ -68,9 +142,8 @@ print "Start listen"
 #循环等待连接
 while 1:
     if (platform.system() != 'Windows'):
-        if g.read(21) == '0':
+        if g.read(gpio_in) == '0':
             break
-
     try:
         #print "waitting accept"
         clientsock, clientaddr = s.accept()#接受外部连接
